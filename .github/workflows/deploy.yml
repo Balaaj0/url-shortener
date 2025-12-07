@@ -1,0 +1,27 @@
+name: Build and deploy URL shortener to Azure Container Apps
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and deploy Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          # where the app source (with Dockerfile) lives
+          appSourcePath: ${{ github.workspace }}
+          acrName: bkacr                         # your ACR name
+          containerAppName: url-shortener-app       # your Container App name
+          resourceGroup: rg-url-shortener-01            # your RG
