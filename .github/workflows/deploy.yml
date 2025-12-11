@@ -4,6 +4,10 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,11 +21,21 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and deploy Container App
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          # where the app source (with Dockerfile) lives
-          appSourcePath: ${{ github.workspace }}
-          acrName: bkacr                         # your ACR name
-          containerAppName: url-shortener-app       # your Container App name
-          resourceGroup: rg-url-shortener-01            # your RG
+      - name: Log in to ACR
+        run: |
+          az acr login --name bkacr
+
+      - name: Build Docker image
+        run: |
+          docker build -t bkacr.azurecr.io/url-shortener:${{ github.sha }} .
+
+      - name: Push Docker image
+        run: |
+          docker push bkacr.azurecr.io/url-shortener:${{ github.sha }}
+
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name url-shortener-app \
+            --resource-group rg-url-shortener-01 \
+            --image bkacr.azurecr.io/url-shortener:${{ github.sha }}
